@@ -1,7 +1,3 @@
-This is a clone and continuation of my old SVN repo here:
+Hi! This is a fork. I'm working on making some small changes / improvements.
 
-https://sourceforge.net/projects/open303/
-
-I initally copied over all the code and am now trying to turn it into a CLAP plugin because VST2 is
-now deprecated and this simple GUI-less plugin seems like a good start for learning the new plugin 
-SDK.
+The original comes from here: https://github.com/RobinSchmidt/Open303/
