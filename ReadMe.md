@@ -1,7 +1,3 @@
-Here is a rewritten `README.md` that reflects your changes, properly credits the original author, and maintains a professional tone without emojis.
-
----
-
 # Open303
 
 Open303 is a free and open source emulation of the Roland TB-303 bass synthesizer.
