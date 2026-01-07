@@ -255,26 +255,33 @@ namespace rosic
 
     if( mode == TB_303 )
     {
-      double fx = wc * ONE_OVER_SQRT2/(2*PI); 
-      b0 = (0.00045522346 + 6.1922189 * fx) / (1.0 + 12.358354 * fx + 4.4156345 * (fx * fx)); 
-      k  = fx*(fx*(fx*(fx*(fx*(fx+7198.6997)-5837.7917)-476.47308)+614.95611)+213.87126)+16.998792; 
-      g  = k * 0.058823529411764705882352941176471; // 17 reciprocal 
-      g  = (g - 1.0) * r + 1.0;                     // r is 0 to 1.0
-      g  = (g * (1.0 + r)); 
-      k  = k * r;                                   // k is ready now 
+      double fx = wc * ONE_OVER_SQRT2/(2*PI);
+      b0 = (0.00045522346 + 6.1922189 * fx) / (1.0 + 12.358354 * fx + 4.4156345 * (fx * fx));
+
+      // Calculate feedback resonance k
+      k  = fx*(fx*(fx*(fx*(fx*(fx+7198.6997)-5837.7917)-476.47308)+614.95611)+213.87126)+16.998792;
+      k  = k * r;
+
+      // CHANGE: Fixed the gain calculation.
+      // We force g = 1.0 to restore the authentic "bass drop" at high resonance.
+      g  = 1.0;
     }
   }
 
   INLINE double TeeBeeFilter::shape(double x)
   {
-    // return tanhApprox(x); // \todo: find some more suitable nonlinearity here
-    //return x; // test
+    // 1. Add a DC bias to simulate the asymmetrical behavior of the 303's transistors
+    double bias = 0.5;
+    x = x + bias;
 
+    // 2. Apply the cubic soft-clipper
     const double r6 = 1.0/6.0;
     x = clip(x, -SQRT2, SQRT2);
-    return x - r6*x*x*x;
+    double y = x - r6*x*x*x;
 
-    //return clip(x, -1.0, 1.0);
+    // 3. Remove the shaped bias to center the signal
+    double biasShaped = bias - r6*bias*bias*bias;
+    return y - biasShaped;
   }
 
   INLINE double TeeBeeFilter::getSample(double in)
@@ -283,16 +290,18 @@ namespace rosic
 
     if( mode == TB_303 )
     {
-      //y0  = in - feedbackHighpass.getSample(k * shape(y4));  
-      y0 = in - feedbackHighpass.getSample(k*y4);  
-      //y0  = in - k*shape(y4);  
-      //y0  = in-k*y4;  
+      // CHANGE 1: Apply 'shape()' to the feedback signal (y4).
+      double feedback = k * shape(y4);
+      y0 = in - feedbackHighpass.getSample(feedback);
+
+      // Calculate the 4 filter stages (ladder)
       y1 += 2*b0*(y0-y1+y2);
       y2 +=   b0*(y1-2*y2+y3);
       y3 +=   b0*(y2-2*y3+y4);
       y4 +=   b0*(y3-2*y4);
-      return 2*g*y4;
-      //return 3*y4;
+
+      // CHANGE 2: Output y4 directly (removed the g boost)
+      return y4;
     }
 
     // apply drive and feedback to obtain the filter's input signal:
@@ -326,3 +335,4 @@ namespace rosic
 }
 
 #endif // rosic_TeeBeeFilter_h
+
